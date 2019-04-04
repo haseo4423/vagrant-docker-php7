@@ -1,0 +1,111 @@
+version: '3'
+services:
+  proxy:
+    container_name: proxy
+    build: ./01_proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./01_proxy/apache2/conf/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ./01_proxy/apache2/conf.d:/usr/local/apache2/conf.d
+    depends_on:
+      - sample
+      - dummy-login
+    networks:
+      static_network:
+        ipv4_address: 172.20.0.11
+
+  memcached:
+    container_name: memcached
+    image: memcached:1.5
+    expose:
+      - "53501"
+    command:
+      - "-p 53501"
+    networks:
+      static_network:
+        ipv4_address: 172.20.0.25
+
+  dummy-login:
+    container_name: dummy-login
+    build:
+      context: ./
+      dockerfile: ./02_dummy_login/Dockerfile
+    expose:
+      - "8080"
+      - "44380"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./02_dummy_login/config/apache2/sites-enabled:/etc/apache2/sites-enabled
+      - ./02_dummy_login/log/apache2:/var/log/apache2
+      - ./02_dummy_login/var/www/html:/home/www/html
+    networks:
+      static_network:
+        ipv4_address: 172.20.0.21
+
+  sample:
+    container_name: sample
+    hostname: sample-dev
+    build:
+      context: ./
+      dockerfile: ./21_sample/Dockerfile
+    expose:
+      - "10080"
+      - "10443"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./21_sample/config/apache2/sites-enabled:/etc/apache2/sites-enabled
+      - ./21_sample/config/php/php.ini:/usr/local/etc/php/php.ini
+      - ./21_sample/log/apache2:/var/log/apache2
+      - ./21_sample/log/php:/var/log/php
+      - /home/www/sample.dev.jp:/home/www/sample.dev.jp
+    depends_on:
+      - sample_db
+    networks:
+      static_network:
+        ipv4_address: 172.20.0.31
+
+  sample_db:
+    container_name: sample_db
+    build:
+      context: ./
+      dockerfile: ./25_sample_db/Dockerfile
+    environment:
+      - POSTGRES_USER=postgres
+    expose:
+      - "5432"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./25_sample_db/postgresql/init:/docker-entrypoint-initdb.d
+      - /home/vagrant/docker/sample/db/var/lib/postgresql/data:/var/lib/postgresql/data
+    networks:
+      static_network:
+        ipv4_address: 172.20.0.35
+
+  # 参考にするため残しとく
+  # devtools:
+  #   container_name: devtools
+  #   build:
+  #     context: ./
+  #     dockerfile: ./91_devTools/Dockerfile
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
+  #     - ./91_devTools/config/php/php.ini:/usr/local/etc/php/php.ini
+  #     - ./91_devTools/log/php:/var/log/php
+  #     - /home/devTools:/home/devTools
+  #   extra_hosts:
+  #     - sample-extra.dev.jp:172.20.0.11
+  #     - sample-extra2.dev.jp:172.20.0.11
+  #   networks:
+  #     static_network:
+  #       ipv4_address: 172.20.0.91
+
+networks:
+  static_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
