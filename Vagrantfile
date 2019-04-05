@@ -5,7 +5,7 @@
 ## 各自の環境にあわせて、設定してください
 # 仮想環境で動作させたいプログラムのパス
 # SAMPLE_REPOSITORY_PATH = "/Users/sog/workspace/sample"
-SAMPLE_REPOSITORY_PATH = "/../../workspace/sample"
+SAMPLE_REPOSITORY_PATH = "../../workspace/sample"
 ###########################################################
 
 vb_memory = 2048
